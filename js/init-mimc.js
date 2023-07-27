@@ -1,4 +1,4 @@
-Object.defineProperty(navigator,'userAgent',{get(){return Math.random().toString(36).slice(2)}})
+Object.defineProperty(navigator,'userAgent',{get:function(){return Math.random().toString(36).slice(2)}})
 mimc_appId = "2882303761517669588";
 mimc_appSecret = "b0L3IOz/9Ob809v8H2FbVg==";
 mimc_appKey = "5111766983588";
