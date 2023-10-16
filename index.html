@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="referrer" content="never">
@@ -137,18 +137,23 @@
         var replier = {};
         var canSend = 0;
         var globalReplies = [];
+        var ls = {};
+        try{
+            ls = localStorage
+        }catch(e){}
         if (typeof Storage != "undefined") {
-            localStorage['ch1'] = localStorage['ch1'] || "";
-            ch1.value = localStorage['ch1'];
+            ls['ch1'] = ls['ch1'] || "";
+            ch1.value = ls['ch1'];
         }
         function submit() {
             if (!canSend) return;
             if (!fbpl.value) { return alert('请填写评论') }
             if (fbpl.value.length > 1000) { return alert('评论不能超过1000字') }
             if (fbpl.value.split("\n").length > 40) { return alert('评论不能超过40行') }
+            if (ch1.value.length > 20) { return alert('称呼不能超过20字') }
             // canSend = 0;
             var user = ch1.value || 'User';
-            if (typeof Storage != "undefined") { localStorage['ch1'] = ch1.value }
+            if (typeof Storage != "undefined") { ls['ch1'] = ch1.value }
             var sendjson = {
                 name: user,
                 content: fbpl.value,
@@ -312,7 +317,7 @@
                     try {
                         var str = LZString.decompressFromBase64(e[i])
                         var o = JSON.parse(str);
-                        if (typeof o == 'object' && typeof o.content == 'string' && typeof o.name == 'string' && typeof o.date == "number") {
+                        if (typeof o == 'object' && typeof o.content == 'string' && typeof o.name == 'string' && typeof o.date == "number" && o.name.length <= 20) {
                             o.avatar = getImage(o.name);
                             o.time = getTimeAgo(o.date);
                             if (typeof o.to == 'string') {
