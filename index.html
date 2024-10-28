@@ -1,40 +1,50 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="referrer" content="never">
 
 <head>
     <style>
-        /* 外部容器 */
+        /* 基本重置 */
         * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
 
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        /* 评论外部容器 */
         .comment-container {
-            /* width: 400px; */
+            max-width: 600px; /* 设定最大宽度 */
             margin: 20px auto;
-            padding: 10px;
+            padding: 20px;
             border: 1px solid #ccc;
-            background-color: #f9f9f9;
+            background-color: #fff;
+            border-radius: 8px; /* 圆角 */
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* 阴影效果 */
         }
 
         /* 评论列表 */
         .comment-list {
             list-style-type: none;
-            word-wrap: break-word;
-            white-space: pre-wrap;
             padding: 0;
             margin: 0;
         }
 
         /* 单个评论项 */
         .comment-item {
-            margin-bottom: 10px;
-            padding: 5px;
+            margin-bottom: 15px;
+            padding: 10px;
             border: 1px solid #ccc;
-            background-color: #fff;
-            align-items: center;
+            border-radius: 5px;
+            background-color: #fafafa;
+            display: flex; /* 使用flexbox布局 */
+            align-items: flex-start; /* 垂直对齐 */
         }
 
         /* 评论者头像 */
@@ -43,42 +53,65 @@
             height: 50px;
             border-radius: 50%;
             margin-right: 10px;
-            vertical-align: middle
         }
 
-        /* 评论者和内容 */
-        .comment-timer {
-            color: #99a2aa;
-            margin-right: 8px;
-        }
-
-        .comment-reply-to {
-            color: #99a2aa;
+        /* 评论内容 */
+        .comment-content {
+            flex-grow: 1; /* 使内容部分占据剩余空间 */
         }
 
         .comment-author {
-            line-height: 40px;
             font-weight: bold;
-            vertical-align: middle
+            margin-bottom: 5px; /* 添加底部间距 */
+        }
+
+        .comment-timer {
+            color: #99a2aa;
+            font-size: 12px;
+            margin-top: 5px; /* 添加顶部间距 */
         }
 
         /* 回复按钮 */
         .comment-reply {
-            margin-left: auto;
             background-color: #4caf50;
             color: #fff;
             border: none;
             padding: 5px 10px;
             cursor: pointer;
+            border-radius: 4px; /* 圆角 */
         }
 
         /* 回复框 */
         .comment-reply-box {
             display: none;
             margin-top: 10px;
-            padding: 5px;
+            padding: 10px;
             border: 1px solid #ccc;
             background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+
+        /* 提交框和按钮 */
+        .comment-textarea,
+        .comment-name {
+            width: calc(100% - 20px); /* 计算宽度以留出边距 */
+            margin-bottom: 10px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        /* 提交按钮 */
+        .comment-submit {
+            padding: 10px;
+            font-size: 16px;
+            background-color: #4caf50;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px; /* 圆角 */
+            width: 100%; /* 使按钮占满整个宽度 */
         }
 
         /* 展开回复按钮 */
@@ -87,41 +120,14 @@
             color: #4caf50;
             font-size: 14px;
             cursor: pointer;
-        }
-
-        .comment-textarea {
-            width: 100%;
-            height: 120px;
-            margin-bottom: 10px;
-            font-size: 18px;
-            resize: none;
-        }
-
-        /* 提交按钮 */
-        .comment-submit {
-            padding: 5px 10px;
-            font-size: 16px;
-            background-color: #4caf50;
-            color: #fff;
-            border: none;
-            cursor: pointer;
-        }
-
-        .comment-name {
-            width: 48%;
-            margin: auto;
-            height: 20px;
-            margin-bottom: 10px;
-            font-size: 18px;
+            text-align: right; /* 右对齐 */
         }
     </style>
 </head>
 
 <body>
     <div class="comment-container" id="comment-container">
-        <ul class="comment-list" id="comment-list">
-
-        </ul>
+        <ul class="comment-list" id="comment-list"></ul>
         <input type="text" class="comment-name" placeholder="称呼" id="ch1">
         <input type="text" class="comment-name" placeholder="回复" id="hf1">
         <textarea class="comment-textarea" placeholder="发表评论" id="fbpl"></textarea>
@@ -132,36 +138,38 @@
     <script src="js/md5.min.js"></script>
     <script src="js/init-mimc.js"></script>
     <script>
-        var tmpDiv = document.createElement('div')
+        var tmpDiv = document.createElement('div');
         var globalm = {};
         var replier = {};
         var canSend = 0;
         var globalReplies = [];
         var ls = {};
-        try{
-            ls = localStorage
-        }catch(e){}
+        try {
+            ls = localStorage;
+        } catch (e) {}
         if (typeof Storage != "undefined") {
             ls['ch1'] = ls['ch1'] || "";
             ch1.value = ls['ch1'];
         }
+        
         function submit() {
             if (!canSend) return;
-            if (!fbpl.value) { return alert('请填写评论') }
-            if (fbpl.value.length > 1000) { return alert('评论不能超过1000字') }
-            if (fbpl.value.split("\n").length > 40) { return alert('评论不能超过40行') }
-            if (ch1.value.length > 20) { return alert('称呼不能超过20字') }
-            // canSend = 0;
+            if (!fbpl.value) { return alert('请填写评论'); }
+            if (fbpl.value.length > 1000) { return alert('评论不能超过1000字'); }
+            if (fbpl.value.split("\n").length > 40) { return alert('评论不能超过40行'); }
+            if (ch1.value.length > 20) { return alert('称呼不能超过20字'); }
+
             var user = ch1.value || 'User';
-            if (typeof Storage != "undefined") { ls['ch1'] = ch1.value }
+            if (typeof Storage != "undefined") { ls['ch1'] = ch1.value; }
             var sendjson = {
                 name: user,
                 content: fbpl.value,
                 date: Date.now()
-            }
+            };
+
             if (hf1.value) {
                 if (replier[hf1.value]) {
-                    sendjson.to = replier[hf1.value]
+                    sendjson.to = replier[hf1.value];
                 } else {
                     for (var i = 0; i < globalReplies.length; i++) {
                         if ("回复 " + globalReplies[i].name == hf1.value) {
@@ -178,112 +186,58 @@
                     globalm[sendjson.to].replies.push(sendjson);
                 } else {
                     globalReplies.push(sendjson);
-                    globalm[sendjson.to = md5.base64(str)] = sendjson
+                    globalm[sendjson.to = md5.base64(str)] = sendjson;
                 }
-                sendjson.replies = []
-                sendjson.avatar = getImage(sendjson.name)
+                sendjson.replies = [];
+                sendjson.avatar = getImage(sendjson.name);
                 sendjson.time = getTimeAgo(sendjson.date);
-                show(globalReplies)
+                show(globalReplies);
             });
-            fbpl.value = ""
-            hf1.value = ""
+            fbpl.value = "";
+            hf1.value = "";
         }
 
         function trn(str) {
             tmpDiv.textContent = str;
             return tmpDiv.innerHTML;
         }
+
         function show(e) {
             for (var i = 0; i < e.length; i++) {
                 if (e[i].replies) {
-                    e[i].replies.sort(function (a, b) { return a.date - b.date })
+                    e[i].replies.sort(function (a, b) { return a.date - b.date; });
                 }
             }
-            e.sort(function (a, b) { return b.date - a.date })
+            e.sort(function (a, b) { return b.date - a.date; });
             canSend = 1;
             globalReplies = e;
             var replies = e || [];
-            // replies = {
-            //     name: 'name',
-            //     content: "123",
-            //     avatar: "1.png",
-            //     time: "13",
-            //     to: "md5",
-            //     replies: [
-            //         {
-            //             name: 'name',
-            //             content: "123",
-            //             avatar: "1.png",
-            //             time: "13",
-            //             to: "md5",
-            //         }
-            //     ]
-            // }
-
-            function make(a, b, c) {
-                var e = document.createElement(a);
-                e.className = b;
-                if (c != undefined) {
-                    if (a == 'img') {
-                        e.src = c;
-                    } else if (a == 'span') {
-                        e.innerText = c;
-                    } else if (a == 'div') {
-                        e.innerHTML = c;
-                    }
-                }
-                return e;
-            }
-            function builditem(e) {
-                return "<div class='reply-item'><img class='comment-avatar' src='".concat(e.avatar, "' style='width:32px;height:32px '><span class='comment-author'>").concat(trn(e.name), "</span>:<div class='comment-text'>").concat(trn(e.content), "</div><span class='comment-timer'>").concat(e.time, "</span></div>");
-            }
-            var div = document.getElementById('comment-container');
             var ul = document.getElementById('comment-list');
             ul.innerHTML = '';
+
             replies.forEach(function (e) {
-                var li = make("li", "comment-item");
-                var img = make("img", "comment-avatar", e.avatar);
-                var div = make("div", "comment-content");
-                var span = make("span", "comment-author", e.name);
-                var div1 = make('div', "comment-text", trn(e.content));
-                var div2 = make('div', "comment-replies", e.replies.slice(0, 3).map(function (e) {
-                    return builditem(e);
-                }).join(""));
-                li.appendChild(img);
-                li.appendChild(span);
-                li.appendChild(div);
-                div.appendChild(div1);
-                div.appendChild(make('span', 'comment-timer', e.time));
-                var a = document.createElement('a');
-                a.className = "comment-reply-to";
-                a.innerText = "回复"
-                a.href = "javascript:void 0"
-                a.onclick = function () {
+                var li = document.createElement("li");
+                li.className = "comment-item";
+                li.innerHTML = `
+                    <img class='comment-avatar' src='${e.avatar}' />
+                    <div class='comment-content'>
+                        <span class='comment-author'>${trn(e.name)}</span>
+                        <div class='comment-text'>${trn(e.content)}</div>
+                        <span class='comment-timer'>${e.time}</span>
+                        <a class='comment-reply-to' href='javascript:void(0)'>回复</a>
+                    </div>
+                `;
+                li.querySelector('.comment-reply-to').onclick = function () {
                     scrollTo(0, 1e6);
                     var k = "回复 " + e.name;
                     replier[k] = e.to;
                     hf1.value = k;
-                    fbpl.focus()
-                    return false;
-                }
-                div.appendChild(a)
-                div.appendChild(div2);
-                if (e.replies.length > 3) {
-                    var div3 = make('div', "comment-expand-reply", "展开回复");
-                    div.appendChild(div3);
-                    div3.onclick = function () {
-                        div3.hidden = 'hidden';
-                        var replies = e.replies;
-                        div2.innerHTML = replies.map(function (e) {
-                            return builditem(e);
-                        }).join("");
-                    };
-                }
-
+                    fbpl.focus();
+                };
                 ul.appendChild(li);
             });
-            // div.appendChild(ul);
         }
+
         function getTimeAgo(publishTime) {
             var currentTime = Date.now();
             var timeDiff = currentTime - publishTime;
@@ -297,51 +251,4 @@
                 timeAgoStr += hours + "小时前发布";
             } else if (minutes > 0) {
                 timeAgoStr += minutes + "分钟前发布";
-            } else {
-                timeAgoStr += "刚刚发布";
-            }
-            return timeAgoStr;
-        }
-        function getImage(str) {
-            return "img/" + md5.array(str).reduce(function (a,b) {return (a * 256 + b) % 167})  + ".jpg"
-        }
-        var group; var canSend = 1;
-        var groupName = md5.base64('axu' + location.hash + '74')
-        getGroup(groupName, function () {
-            group = 1;
-            getData(function (e) {
-                var arr = [];
-                var reply = [];
-                globalm = {};
-                for (var i = 0; i < e.length; i++) {
-                    try {
-                        var str = LZString.decompressFromBase64(e[i])
-                        var o = JSON.parse(str);
-                        if (typeof o == 'object' && typeof o.content == 'string' && typeof o.name == 'string' && typeof o.date == "number" && o.name.length <= 20) {
-                            o.avatar = getImage(o.name);
-                            o.time = getTimeAgo(o.date);
-                            if (typeof o.to == 'string') {
-                                if (o.content.length <= 1000 && o.content.split("\n").length <= 40) {
-                                    reply.push(o);
-                                }
-                            } else {
-                                o.replies = [];
-                                arr.push(globalm[o.to = md5.base64(str)] = o);
-                            }
-                        }
-                    } catch (e) {
-
-                    }
-                }
-                for (var i = 0; i < reply.length; i++) {
-                    var k = reply[i];
-                    var r = globalm[k.to];
-                    if (r) r.replies.push(k); else console.warn(k)
-                }
-                show(arr)
-            })
-        })
-    </script>
-</body>
-
-</html>
+           
